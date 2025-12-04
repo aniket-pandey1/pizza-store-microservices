@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pizza Store - Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS STYLES */
+        * { box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+        body { margin: 0; background-color: #f4f6f8; }
+
+        /* Navbar */
+        .navbar { background: #2c3e50; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; color: white; }
+        .navbar h1 { margin: 0; font-size: 24px; }
+        .nav-links a { color: white; text-decoration: none; margin-left: 20px; font-weight: 500; cursor: pointer; }
+        .nav-links a:hover { color: #f1c40f; }
+
+        /* Hero Section */
+        .hero { background: #e67e22; color: white; text-align: center; padding: 60px 20px; }
+        .hero h2 { margin: 0 0 10px; font-size: 36px; }
+        .hero p { font-size: 18px; margin-bottom: 20px; }
+        
+        /* Login Form */
+        .login-container { display: flex; justify-content: center; margin-top: -30px; }
+        .login-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; gap: 10px; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2ecc71; }
+
+        /* Menu Grid */
+        .container { max-width: 1000px; margin: 40px auto; padding: 20px; }
+        .menu-title { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        
+        .pizza-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        
+        .pizza-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: transform 0.2s; text-align: center; padding-bottom: 20px; }
+        .pizza-card:hover { transform: translateY(-5px); }
+        .pizza-header { background: #ecf0f1; padding: 15px; font-weight: bold; font-size: 18px; color: #e67e22; }
+        .pizza-body { padding: 15px; }
+        .pizza-price { font-size: 22px; color: #27ae60; font-weight: bold; margin: 10px 0; }
+        .btn-order { background: #e67e22; width: 80%; margin: auto; display: block; }
+        .btn-order:hover { background: #d35400; }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <h1>🍕 Pizza Store</h1>
+        <div class="nav-links">
+            <a href="register.html">Register</a>
+            <a href="my-orders.html">My Orders</a>
+            <a href="admin-login.html">Admin</a>
+            <span id="userDisplay" style="margin-left:20px; color:#f1c40f; font-weight:bold;"></span>
+            <a id="logoutBtn" class="hidden" onclick="logout()">Logout</a>
+        </div>
+    </div>
+
+    <div class="hero">
+        <h2>Fresh Pizza, Delivered Fast!</h2>
+        <p>Login to order your favorite pizza now.</p>
+    </div>
+
+    <div class="login-container" id="loginSection">
+        <div class="login-box">
+            <input type="email" id="email" placeholder="Enter Email">
+            <input type="password" id="password" placeholder="Enter Password">
+            <button onclick="loginUser()">Login</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2 class="menu-title">Our Menu</h2>
+        <div class="pizza-grid" id="pizzaList">
+            <p style="text-align:center; width:100%;">Loading Pizzas...</p>
+        </div>
+    </div>
+
+    <script>
+        // --- DIAGNOSTIC CONFIGURATION ---
+        const GATEWAY_URL = "http://localhost:8080";
+        
+        // TEMPORARY FIX: Point Login directly to User Service Port (8081)
+        // instead of Gateway (8080) to see if it works.
+        const LOGIN_API = "http://localhost:8081/user/login"; 
+        
+        const PIZZA_API = `${GATEWAY_URL}/pizza/all`;
+        const ORDER_API = `${GATEWAY_URL}/order/place`;
+
+        // Check if user is already logged in
+        window.onload = function() {
+            checkLoginStatus();
+            loadPizzas();
+        };
+
+        function checkLoginStatus() {
+            const userEmail = localStorage.getItem("userEmail");
+            const token = localStorage.getItem("token");
+
+            if(userEmail && token) {
+                document.getElementById("loginSection").classList.add("hidden");
+                document.getElementById("userDisplay").innerText = "Hello, " + userEmail;
+                document.getElementById("logoutBtn").classList.remove("hidden");
+            }
+        }
+
+        async function loginUser() {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+
+            try {
+                const response = await fetch(LOGIN_API, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: email, password: password })
+                });
+
+                if(response.ok) {
+                    const data = await response.json(); 
+                    localStorage.setItem("userEmail", email);
+                    localStorage.setItem("token", "dummy-jwt-token"); 
+                    alert("Login Successful!");
+                    location.reload(); 
+                } else {
+                    alert("Invalid Credentials");
+                }
+            } catch (error) {
+                console.error("Login Error:", error);
+                alert("Login Service Unreachable (Port 8081)");
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        async function loadPizzas() {
+            try {
+                const response = await fetch(PIZZA_API);
+                const pizzas = await response.json();
+                
+                const container = document.getElementById("pizzaList");
+                container.innerHTML = "";
+
+                pizzas.forEach(pizza => {
+                    const card = document.createElement("div");
+                    card.className = "pizza-card";
+                    card.innerHTML = `
+                        <div class="pizza-header">${pizza.itemName}</div>
+                        <div class="pizza-body">
+                            <p>${pizza.category} | ${pizza.size}</p>
+                            <div class="pizza-price">₹${pizza.price}</div>
+                            <button class="btn-order" onclick="placeOrder('${pizza.itemName}', ${pizza.price}, '${pizza.size}')">Order Now</button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                document.getElementById("pizzaList").innerHTML = "<p>Failed to load menu. Is the Gateway running?</p>";
+            }
+        }
+
+        async function placeOrder(name, price, size) {
+            const email = localStorage.getItem("userEmail");
+            if(!email) {
+                alert("Please Login First!");
+                return;
+            }
+
+            const orderData = {
+                userEmail: email,
+                pizzaName: name,
+                price: price,
+                size: size
+            };
+
+            try {
+                const response = await fetch(ORDER_API, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(orderData)
+                });
+
+                if(response.ok) {
+                    const msg = await response.text();
+                    alert("Success: " + msg);
+                } else {
+                    alert("Order Failed");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Order Service Error");
+            }
+        }
+    </script>
+</body>
+</html>
