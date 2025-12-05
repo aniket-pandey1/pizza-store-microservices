@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizza Store - Capstone</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>🍕 Pizza Store</h1>
+        <nav id="main-nav">
+            <!-- Navigation links will be added here -->
+        </nav>
+    </header>
+
+    <main id="content-container">
+        
+        <!-- Dedicated Admin Login View (Hidden by default, shown by app.js toggle) -->
+        <section id="admin-login-view" style="display: none;">
+            <h2>🔐 Administrator Login</h2>
+            <p>Use your designated Admin credentials to access the management dashboard.</p>
+            
+            <form id="admin-login-form">
+                <input type="text" id="admin-login-username" placeholder="Admin Username" required><br>
+                <input type="password" id="admin-login-password" placeholder="Admin Password" required><br>
+                <button type="submit">Admin Login</button>
+                <p>Back to <a href="#" id="show-user-login">User Login</a></p>
+            </form>
+        </section>
+        
+        <!-- Standard User/Customer Login/Register View -->
+        <section id="auth-view">
+            <h2>User Login</h2>
+            <form id="login-form">
+                <input type="text" id="login-username" placeholder="Username" required><br>
+                <input type="password" id="login-password" placeholder="Password" required><br>
+                <button type="submit">Login</button>
+                <p>
+                    Don't have an account? <a href="#" id="show-register">Register here</a>
+                    | <a href="#" id="show-admin-login">Admin Login</a>
+                </p>
+            </form>
+
+            <div id="register-container" style="display: none;">
+                <h2>New User Registration</h2>
+                <form id="register-form">
+                    <input type="text" id="reg-username" placeholder="Username" required><br>
+                    <input type="email" id="reg-email" placeholder="Email" required><br>
+                    <input type="password" id="reg-password" placeholder="Password" required><br>
+                    <input type="text" id="reg-fullname" placeholder="Full Name"><br>
+                    <input type="text" id="reg-phone" placeholder="Phone"><br>
+                    <button type="submit">Register</button>
+                    <p><a href="#" id="show-login">Back to Login</a></p>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

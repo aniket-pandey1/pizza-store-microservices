@@ -10,50 +10,33 @@ import org.springframework.web.bind.annotation.*;
 public class NotificationController {
 
     @Autowired
-    private JavaMailSender mailSender;
+    private JavaMailSender javaMailSender;
 
     @PostMapping("/send")
-    public String sendEmail(@RequestBody EmailRequest request) {
-        // 1. Log the attempt
-        System.out.println("------------------------------------------------");
-        System.out.println("ATTEMPTING TO SEND EMAIL...");
-        System.out.println("TO: " + request.getTo());
-        System.out.println("SUBJECT: " + request.getSubject());
-        System.out.println("------------------------------------------------");
-        
+    public String sendNotification(@RequestBody NotificationDTO notificationRequest) {
         try {
-            // 2. Prepare the Email
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(request.getTo());
-            message.setSubject(request.getSubject());
-            message.setText(request.getBody());
+            SimpleMailMessage mailMessage = new SimpleMailMessage();
             
-            // 3. Send it (This requires correct application.properties)
-            mailSender.send(message);
+            // 1. Set Sender
+            mailMessage.setFrom("aniketpandeyji1221@gmail.com");
             
-            System.out.println("SUCCESS: Email sent to " + request.getTo());
-            return "Email Sent Successfully!";
+            // 2. Set Recipient 
+            // (Make sure the email in the request is valid, or hardcode your own for testing)
+            mailMessage.setTo(notificationRequest.getEmail());
+            
+            // 3. Set Subject and Body
+            mailMessage.setSubject("PizzaStore Order Confirmation");
+            mailMessage.setText(notificationRequest.getMessage());
+
+            // 4. Send Email
+            javaMailSender.send(mailMessage);
+
+            System.out.println("EMAIL SENT SUCCESSFULLY TO: " + notificationRequest.getEmail());
+            return "Email Sent Successfully";
             
         } catch (Exception e) {
-            // 4. Handle Errors (Wrong password, Connection issues)
-            System.err.println("FAILURE: Could not send email.");
-            System.err.println("ERROR: " + e.getMessage());
-            return "Failed to send email: " + e.getMessage();
+            e.printStackTrace();
+            return "Error sending email: " + e.getMessage();
         }
     }
-}
-
-// DTO Class
-class EmailRequest {
-    private String to;
-    private String subject;
-    private String body;
-
-    // Getters and Setters
-    public String getTo() { return to; }
-    public void setTo(String to) { this.to = to; }
-    public String getSubject() { return subject; }
-    public void setSubject(String subject) { this.subject = subject; }
-    public String getBody() { return body; }
-    public void setBody(String body) { this.body = body; }
 }
