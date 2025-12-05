@@ -1,5 +1,5 @@
 const USER_SERVICE_URL = 'http://localhost:8081/users';
-const ADMIN_BASE_URL = 'http://localhost:8082/admin'; // Base URL for admin endpoints
+const ADMIN_BASE_URL = 'http://localhost:8082/admin'; 
 const ORDER_SERVICE_URL = 'http://localhost:8083/orders'; 
 
 let currentUser = null; 
@@ -43,7 +43,6 @@ document.getElementById('show-user-login').addEventListener('click', (e) => {
 //                  *** AUTHENTICATION LOGIC ***
 // =========================================================================
 
-// --- Generalized Login Function ---
 async function handleLogin(username, password) {
     const loginData = { username, password };
 
@@ -55,20 +54,18 @@ async function handleLogin(username, password) {
         });
 
         if (response.ok) {
-            // FIX 1: Parse the JSON response from the backend (contains token, role, username)
             const responseData = await response.json(); 
             const userRole = responseData.role;
             const token = responseData.token; 
             
-            // Fetch user detail using the username to get the necessary userId 
             const userResponse = await fetch(`${USER_SERVICE_URL}/detail/${username}`); 
-            const userData = await userResponse.json(); // Contains userId
+            const userData = await userResponse.json(); 
             
             currentUser = { 
                 username: username, 
                 role: userRole, 
                 userId: userData.userId, 
-                token: token // JWT token is stored
+                token: token 
             }; 
             
             alert(`Login successful! Welcome, ${username}.`);
@@ -86,7 +83,7 @@ async function handleLogin(username, password) {
             alert('Login failed: ' + errorText);
         }
     } catch (error) {
-        console.error('Network Error:', error);
+        console.error('Login Network Error:', error);
         alert('Could not connect to the User Service.');
     }
 }
@@ -109,7 +106,7 @@ document.getElementById('admin-login-form').addEventListener('submit', async (e)
 });
 
 
-// --- Registration Logic (Unchanged) ---
+// --- Registration Logic ---
 document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('reg-username').value;
@@ -128,20 +125,21 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
         });
 
         if (response.ok) {
-            alert('Registration successful! Please log in. NOTE: Password is now hashed.');
+            alert('Registration successful! Please log in.');
             document.getElementById('show-login').click(); 
         } else {
-            alert('Registration failed: ' + await response.text());
+            const errorText = await response.text();
+            alert('Registration failed: ' + errorText);
         }
     } catch (error) {
-        console.error('Network Error:', error);
+        console.error('Register Network Error:', error);
         alert('Could not connect to the server.');
     }
 });
 
 
 // =========================================================================
-//                  *** CUSTOMER VIEW LOGIC (FINAL) ***
+//                  *** CUSTOMER VIEW LOGIC ***
 // =========================================================================
 
 function renderCustomerView() {
@@ -194,7 +192,6 @@ async function renderCustomerOrders() {
     }
 
     try {
-        // Calls: /orders/user/{userId}
         const response = await fetch(`${ORDER_SERVICE_URL}/user/${currentUser.userId}`);
         if (!response.ok) throw new Error('Failed to fetch user orders.');
         const orders = await response.json();
@@ -221,23 +218,22 @@ async function renderCustomerOrders() {
     }
 }
 
-// --- User-Initiated Cancel Logic (Deducts Revenue) ---
+// --- User-Initiated Cancel Logic ---
 async function cancelOrderFromUserDashboard(orderId) {
-    if (!confirm(`Are you sure you want to cancel Order ID ${orderId}? This will trigger a refund and subtract revenue.`)) return;
+    if (!confirm(`Are you sure you want to cancel Order ID ${orderId}? This will trigger a refund.`)) return;
 
     try {
-        // Calls: /orders/cancel/{orderId}
         const response = await fetch(`${ORDER_SERVICE_URL}/cancel/${orderId}`, { method: 'PUT' });
 
         if (response.ok) {
-            alert(`Order ${orderId} was successfully CANCELLED and revenue subtracted.`);
-            renderCustomerOrders(); // Refresh the order list
-            // Optionally, refresh Admin revenue view if an admin is currently logged in:
+            alert(`Order ${orderId} was successfully CANCELLED.`);
+            renderCustomerOrders(); 
             if (currentUser && currentUser.role === 'ADMIN') {
                  renderRevenueView(); 
             }
         } else {
-            alert(`Cancellation failed: ${await response.text()}`);
+            const errorText = await response.text();
+            alert(`Cancellation failed: ${errorText}`);
         }
     } catch (error) {
         alert('Could not connect to Order Service.');
@@ -285,7 +281,7 @@ async function fetchAndRenderMenu() {
 }
 
 
-// --- Cart Management Functions (Unchanged) ---
+// --- Cart Management Functions ---
 
 function addToCart(menuId, name, price) {
     const existingItem = cart.find(item => item.menuId === menuId);
@@ -300,7 +296,6 @@ function addToCart(menuId, name, price) {
             qty: 1
         });
     }
-
     renderCart();
 }
 
@@ -338,8 +333,11 @@ function renderCart() {
 }
 
 
-// --- Checkout Logic (Unchanged) ---
+// =========================================================================
+//             *** CHECKOUT & PAYMENT INTEGRATION LOGIC ***
+// =========================================================================
 
+// Step 1: Place Order (Creates PENDING order)
 async function placeOrder() {
     if (!currentUser || !currentUser.userId) {
         alert("Error: You must be logged in to place an order.");
@@ -362,6 +360,7 @@ async function placeOrder() {
     };
 
     try {
+        // Calls Order Service /place (Saves as PENDING)
         const response = await fetch(`${ORDER_SERVICE_URL}/place`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -370,16 +369,82 @@ async function placeOrder() {
 
         if (response.ok) {
             const orderData = await response.json();
-            alert(`🎉 Order Placed Successfully! Your Order ID is ${orderData.orderId}. Check your email!`);
+            // Move to Step 2: Show Payment Selection Screen
+            renderPaymentSelection(orderData.orderId, orderData.totalAmount, orderData.paymentModes);
             
-            cart = [];
-            renderCart();
-
         } else {
             alert('Order placement failed: ' + await response.text());
         }
     } catch (error) {
+        console.error('Checkout Network Error:', error);
         alert('Could not connect to the Order Service for checkout.');
+    }
+}
+
+// Step 2: Render Payment Selection UI
+function renderPaymentSelection(orderId, totalAmount, modes) {
+    // Ensure totalAmount is a number
+    const total = parseFloat(totalAmount).toFixed(2);
+    
+    const paymentModesHtml = modes.map(mode => 
+        `<button onclick="processPayment('${orderId}', '${total}', '${mode}')" 
+                 style="margin: 5px; padding: 10px; background-color: ${mode === 'COD' ? '#007bff' : '#28a745'}; color: white; border:none; cursor:pointer;">
+            Pay with ${mode}
+        </button>`
+    ).join('');
+
+    document.getElementById('content-container').innerHTML = `
+        <div id="payment-view">
+            <h2>💰 Confirm Payment</h2>
+            <p>Order ID: <strong>${orderId}</strong></p>
+            <h3>Total Amount Due: $${total}</h3>
+            <p>Please select your payment method:</p>
+            <div id="payment-error" style="color: red; margin-bottom: 10px;"></div>
+            <div style="margin-top: 20px;">
+                ${paymentModesHtml}
+            </div>
+            <p style="margin-top: 20px;"><a href="#" onclick="renderCustomerView()">Cancel & Back to Menu</a></p>
+        </div>
+    `;
+}
+
+// Step 3: Process Payment (Calls Order Service which calls Payment Service)
+async function processPayment(orderId, totalAmount, paymentMode) {
+    
+    const errorDiv = document.getElementById('payment-error');
+    errorDiv.textContent = ""; // Clear previous errors
+
+    if (paymentMode !== 'COD') {
+        errorDiv.style.color = "blue";
+        errorDiv.textContent = `Initiating ${paymentMode} payment for $${totalAmount}. Please wait...`;
+    } else {
+        errorDiv.textContent = "Processing COD...";
+    }
+
+    const paymentData = { paymentMode: paymentMode };
+
+    try {
+        // Calls Order Service /confirm-payment
+        const response = await fetch(`${ORDER_SERVICE_URL}/confirm-payment/${orderId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(paymentData)
+        });
+
+        if (response.ok) {
+            alert(`✅ Order ${orderId} finalized! Status: Paid via ${paymentMode}. Check your email!`);
+            cart = []; // Clear Cart
+            renderCustomerView(); // Go back to menu
+        } else {
+            // Handle Payment Failure
+            const errorText = await response.text();
+            errorDiv.style.color = "red";
+            errorDiv.textContent = '❌ Payment Failed: ' + errorText;
+        }
+    } catch (error) {
+        errorDiv.style.color = "red";
+        errorDiv.textContent = '❌ Could not finalize payment due to a network error.';
+        console.error(error);
     }
 }
 
@@ -399,7 +464,7 @@ function renderAdminView() {
                 <button onclick="renderMenuManagement()">Menu Management (CRUD)</button>
                 <button onclick="renderOrderManagement()">Order Management</button>
                 <button onclick="renderRevenueView()">View Total Revenue</button>
-                <button onclick="renderUserManagement()">User Management (CRUD)</button> <!-- NEW BUTTON -->
+                <button onclick="renderUserManagement()">User Management (CRUD)</button>
             </div>
             <div id="admin-content">
                 <p>Welcome to the dashboard. Click an option above.</p>
@@ -409,7 +474,7 @@ function renderAdminView() {
     renderRevenueView(); 
 }
 
-// 1. REVENUE VIEW (Refreshed after cancellation/acceptance)
+// 1. REVENUE VIEW 
 async function renderRevenueView() {
     const adminContentDiv = document.getElementById('admin-content');
     adminContentDiv.innerHTML = '<h3>💰 Shop Revenue</h3><p>Calculating total paid revenue...</p>';
@@ -422,7 +487,7 @@ async function renderRevenueView() {
         adminContentDiv.innerHTML = `
             <h3>💰 Total Paid Revenue:</h3>
             <p style="font-size: 2em; color: green;">$${parseFloat(revenue).toFixed(2)}</p>
-            <p>This total reflects orders marked as 'PAID' (or subtracted by 'REFUNDED').</p>
+            <p>This total reflects orders marked as 'PAID'.</p>
         `;
     } catch (error) {
         adminContentDiv.innerHTML = `<h3>💰 Shop Revenue</h3><p style="color: red;">Error loading revenue: ${error.message}</p>`;
@@ -447,7 +512,7 @@ async function renderOrderManagement() {
             ${orders.length === 0 ? '<p>No orders found.</p>' : ''}
             <table border="1" style="width: 100%;">
                 <thead>
-                    <tr><th>ID</th><th>User ID</th><th>Total</th><th>Status</th><th>Actions</th></tr>
+                    <tr><th>ID</th><th>User ID</th><th>Total</th><th>Status</th><th>Payment</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
                     ${orders.map(order => `
@@ -456,6 +521,7 @@ async function renderOrderManagement() {
                             <td>${order.userId}</td>
                             <td>$${order.totalAmount.toFixed(2)}</td>
                             <td>${order.orderStatus}</td>
+                            <td>${order.paymentStatus}</td>
                             <td>
                                 ${order.orderStatus === 'PLACED' ? 
                                     `<button onclick="updateOrderStatus(${order.orderId}, 'accept')">Accept</button>` : ''
@@ -485,7 +551,8 @@ async function updateOrderStatus(orderId, action) {
             renderOrderManagement(); // Refresh the order list
             renderRevenueView(); // Refresh revenue after cancellation/acceptance
         } else {
-            alert(`Failed to update order status: ${await response.text()}`);
+            const errorText = await response.text();
+            alert(`Failed to update order status: ${errorText}`);
         }
     } catch (error) {
         alert('Could not connect to Order Service.');
@@ -538,7 +605,7 @@ async function handleAddMenuItem(e) {
         if (response.ok) {
             alert('Item added successfully!');
             document.getElementById('add-menu-form').reset();
-            allMenuItems = []; // Invalidate customer menu cache
+            allMenuItems = []; 
             fetchExistingMenuAdmin(); 
         } else {
             alert('Failed to add item: ' + await response.text());
@@ -571,13 +638,13 @@ async function fetchExistingMenuAdmin() {
 }
 
 async function deleteMenuItem(menuId) {
-    if (!confirm(`Are you sure you want to delete this item?`)) return;
+    if (!confirm('Are you sure you want to delete this item?')) return;
     
     try {
         const response = await fetch(`${ADMIN_BASE_URL}/delete/${menuId}`, { method: 'DELETE' });
         if (response.ok) {
             alert('Item deleted.');
-            allMenuItems = []; // Invalidate customer menu cache
+            allMenuItems = []; 
             fetchExistingMenuAdmin(); 
         } else {
             alert('Deletion failed: ' + await response.text());
@@ -706,7 +773,7 @@ async function deleteUser(userId) {
 }
 
 function showUserUpdateForm(userId) {
-    // FIX: Use the correct User Service endpoint to fetch by ID
+    // Use the correct User Service endpoint to fetch by ID
     fetch(`${USER_SERVICE_URL}/detail/id/${userId}`) 
         .then(res => {
             if (!res.ok) throw new Error('Failed to fetch user details.');

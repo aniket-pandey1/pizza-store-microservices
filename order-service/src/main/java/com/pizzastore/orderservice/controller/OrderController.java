@@ -1,6 +1,6 @@
 package com.pizzastore.orderservice.controller;
 
-import com.pizzastore.orderservice.dto.OrderRequestDTO;
+import com.pizzastore.orderservice.dto.CheckoutRequestDTO; // Changed from OrderRequestDTO
 import com.pizzastore.orderservice.entity.Order;
 import com.pizzastore.orderservice.entity.OrderItem;
 import com.pizzastore.orderservice.repository.OrderRepository;
@@ -11,6 +11,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,7 @@ public class OrderController {
     @Autowired
     private RestTemplate restTemplate;
 
-    // Helper method to send notifications (improves code cleanliness)
+    // Helper method to send notifications
     private void sendNotification(String email, String subject, String message) {
         try {
             String notificationUrl = "http://localhost:8084/notification/send";
@@ -42,18 +43,19 @@ public class OrderController {
         }
     }
 
-    // 1. PLACE ORDER
+    // 1. PLACE ORDER (Step 1: Save as PENDING and return ID for payment)
     @PostMapping("/place")
-    public ResponseEntity<?> placeOrder(@RequestBody OrderRequestDTO request) {
+    public ResponseEntity<?> placeOrder(@RequestBody CheckoutRequestDTO request) {
         Order order = new Order();
         order.setUserId(request.getUserId());
-        order.setOrderStatus("PLACED");
-        order.setPaymentStatus("PAID"); // Assumes instant payment success
+        // NEW STATUSES
+        order.setOrderStatus("PENDING_PAYMENT"); 
+        order.setPaymentStatus("PENDING"); 
         
         BigDecimal total = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
 
-        for (OrderRequestDTO.OrderItemRequest itemReq : request.getItems()) {
+        for (CheckoutRequestDTO.OrderItemRequest itemReq : request.getItems()) {
             OrderItem item = new OrderItem();
             item.setMenuId(itemReq.getMenuId());
             item.setQty(itemReq.getQty());
@@ -72,11 +74,67 @@ public class OrderController {
 
         Order savedOrder = orderRepository.save(order);
         
-        // --- Send Order Confirmation ---
-        String confirmationMessage = "Order Placed Successfully! Order ID: " + savedOrder.getOrderId() + ". Total Amount: $" + savedOrder.getTotalAmount();
-        sendNotification("aniketpandeyji1221@gmail.com", "Order Confirmation", confirmationMessage);
+        // Return details needed for the Payment Page
+        Map<String, Object> response = new HashMap<>();
+        response.put("orderId", savedOrder.getOrderId());
+        response.put("totalAmount", savedOrder.getTotalAmount());
+        response.put("paymentModes", Arrays.asList("Card", "UPI", "COD"));
         
-        return ResponseEntity.ok(savedOrder);
+        return ResponseEntity.ok(response);
+    }
+
+    // 7. CONFIRM PAYMENT (Step 2: Call Payment Service)
+    @PostMapping("/confirm-payment/{orderId}")
+    public ResponseEntity<?> confirmPayment(@PathVariable Integer orderId, @RequestBody Map<String, String> paymentDetails) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+        
+        if (order.getOrderStatus().equals("CANCELLED")) {
+            return ResponseEntity.badRequest().body("Order already cancelled.");
+        }
+
+        // Prepare Payload for Payment Service (Port 8085)
+        Map<String, Object> paymentRequest = new HashMap<>();
+        paymentRequest.put("orderId", orderId);
+        paymentRequest.put("amount", order.getTotalAmount());
+        paymentRequest.put("paymentMode", paymentDetails.get("paymentMode"));
+        paymentRequest.put("userId", order.getUserId());
+        
+        String paymentServiceUrl = "http://localhost:8085/payments/process";
+        
+        try {
+            // Call Payment Microservice
+            ResponseEntity<Map> response = restTemplate.postForEntity(paymentServiceUrl, paymentRequest, Map.class);
+            Map<String, String> body = response.getBody();
+
+            if (response.getStatusCode().is2xxSuccessful() && "SUCCESS".equals(body.get("status"))) {
+                // Payment SUCCESS: Update Order
+                order.setOrderStatus("PLACED"); 
+                order.setPaymentStatus("PAID"); 
+                orderRepository.save(order);
+                
+                // Send Confirmation Email
+                sendNotification("aniketpandeyji1221@gmail.com", 
+                        "Order Confirmed & Paid", 
+                        "Order #" + orderId + " placed successfully via " + paymentDetails.get("paymentMode"));
+
+                return ResponseEntity.ok("Order placed and payment confirmed.");
+            } else {
+                // Payment FAILED
+                order.setPaymentStatus("FAILED");
+                orderRepository.save(order);
+                return ResponseEntity.status(400).body("Payment failed: " + body.get("message"));
+            }
+
+        } catch (Exception e) {
+             order.setPaymentStatus("FAILED");
+             orderRepository.save(order);
+             // Handle 400 Bad Request from Payment Service (Simulated Failure)
+             if (e.getMessage() != null && e.getMessage().contains("400")) {
+                 return ResponseEntity.status(400).body("Payment failed. Please try COD or try again.");
+             }
+             return ResponseEntity.status(503).body("Payment gateway unavailable.");
+        }
     }
 
     // 2. GET USER ORDERS
@@ -85,7 +143,7 @@ public class OrderController {
         return ResponseEntity.ok(orderRepository.findByUserId(userId));
     }
     
-    // 3. CANCEL ORDER (UPDATED: Revenue Subtraction and Notification)
+    // 3. CANCEL ORDER (Revenue Subtraction and Notification)
     @PutMapping("/cancel/{orderId}")
     public ResponseEntity<?> cancelOrder(@PathVariable Integer orderId) {
         Optional<Order> optionalOrder = orderRepository.findById(orderId);
@@ -93,7 +151,6 @@ public class OrderController {
         if (optionalOrder.isPresent()) {
             Order order = optionalOrder.get();
             
-            // Prevent cancellation if already accepted, delivered, or cancelled
             if (order.getOrderStatus().equals("ACCEPTED") || order.getOrderStatus().equals("DELIVERED") || order.getOrderStatus().equals("CANCELLED")) {
                  return ResponseEntity.badRequest().body("Order cannot be cancelled in status: " + order.getOrderStatus());
             }
@@ -101,12 +158,12 @@ public class OrderController {
             // 1. Update Status
             order.setOrderStatus("CANCELLED");
             
-            // 2. Subtract Revenue (by setting payment status to REFUNDED)
+            // 2. Subtract Revenue
             order.setPaymentStatus("REFUNDED"); 
 
             orderRepository.save(order);
             
-            // 3. Send Notification 
+            // 3. Send Notification
             String refundMessage = "Your Order ID " + orderId + " has been CANCELLED. A refund of $" + order.getTotalAmount() + " is being processed.";
             sendNotification("aniketpandeyji1221@gmail.com", "Order Cancelled & Refunded", refundMessage);
             
@@ -115,7 +172,7 @@ public class OrderController {
         return ResponseEntity.status(404).body("Order not found");
     }
 
-    // 4. ACCEPT ORDER (UPDATED: Notification)
+    // 4. ACCEPT ORDER (Notification)
     @PutMapping("/accept/{orderId}")
     public ResponseEntity<?> acceptOrder(@PathVariable Integer orderId) {
         Optional<Order> optionalOrder = orderRepository.findById(orderId);
@@ -123,11 +180,11 @@ public class OrderController {
         if (optionalOrder.isPresent()) {
             Order order = optionalOrder.get();
             
+            // Only accept if status is PLACED (Payment Confirmed)
             if (order.getOrderStatus().equals("PLACED")) {
-                order.setOrderStatus("ACCEPTED"); // Or "PREPARING"
+                order.setOrderStatus("ACCEPTED"); 
                 orderRepository.save(order);
                 
-                // Send Notification
                 String acceptMessage = "Your Order ID " + orderId + " has been ACCEPTED and is now being prepared!";
                 sendNotification("aniketpandeyji1221@gmail.com", "Order Status Update", acceptMessage);
                 
