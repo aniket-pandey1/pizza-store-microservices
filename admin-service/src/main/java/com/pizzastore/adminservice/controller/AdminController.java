@@ -3,9 +3,10 @@ package com.pizzastore.adminservice.controller;
 import com.pizzastore.adminservice.entity.Menu;
 import com.pizzastore.adminservice.repository.MenuRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate; // NEW IMPORT
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -21,7 +22,15 @@ public class AdminController {
     private MenuRepository menuRepository;
     
     @Autowired
-    private RestTemplate restTemplate; // Inject RestTemplate
+    private RestTemplate restTemplate;
+
+    // FIX: Use configurable URL instead of hardcoded localhost
+    @Value("${user.service.url:http://localhost:8081}")
+    private String userServiceUrl;
+
+    private String getUserServiceBase() {
+        return userServiceUrl + "/users";
+    }
 
     // 1. ADD Item to Menu 
     @PostMapping("/add")
@@ -43,7 +52,6 @@ public class AdminController {
 
         if (optionalMenu.isPresent()) {
             Menu existingMenu = optionalMenu.get();
-            // ... update logic ...
             existingMenu.setName(menuDetails.getName());
             existingMenu.setCategory(menuDetails.getCategory());
             existingMenu.setBasePrice(menuDetails.getBasePrice());
@@ -78,29 +86,24 @@ public class AdminController {
     // --- ADMIN USER MANAGEMENT CLIENT ENDPOINTS (CRUD) ---
     // ----------------------------------------------------
 
-    private static final String USER_SERVICE_BASE = "http://localhost:8081/users";
-    
     // 6. ADMIN: VIEW ALL USERS
     @GetMapping("/users/all")
     public ResponseEntity<List<Object>> getAllUsers() {
-        // Calls User Service (8081)
-        ResponseEntity<Object[]> response = restTemplate.getForEntity(USER_SERVICE_BASE + "/all", Object[].class);
+        ResponseEntity<Object[]> response = restTemplate.getForEntity(getUserServiceBase() + "/all", Object[].class);
         return ResponseEntity.ok(Arrays.asList(response.getBody()));
     }
 
     // 7. ADMIN: DELETE USER
     @DeleteMapping("/users/delete/{userId}")
     public ResponseEntity<String> deleteUser(@PathVariable Integer userId) {
-        // Calls User Service (8081)
-        restTemplate.delete(USER_SERVICE_BASE + "/delete/" + userId);
+        restTemplate.delete(getUserServiceBase() + "/delete/" + userId);
         return ResponseEntity.ok("User deleted successfully");
     }
 
     // 8. ADMIN: UPDATE USER/ROLE
     @PutMapping("/users/update/{userId}")
     public ResponseEntity<String> updateUser(@PathVariable Integer userId, @RequestBody Object userDetails) {
-        // Calls User Service (8081)
-        restTemplate.put(USER_SERVICE_BASE + "/update/" + userId, userDetails);
+        restTemplate.put(getUserServiceBase() + "/update/" + userId, userDetails);
         return ResponseEntity.ok("User updated successfully");
     }
 }

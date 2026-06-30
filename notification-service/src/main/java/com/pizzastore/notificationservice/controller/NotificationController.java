@@ -1,16 +1,21 @@
 package com.pizzastore.notificationservice.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@CrossOrigin(origins = "*")
 @RequestMapping("/notification")
 public class NotificationController {
 
     @Autowired
     private JavaMailSender javaMailSender;
+
+    @Value("${spring.mail.username}")
+    private String fromEmail;
 
     @PostMapping("/send")
     public String sendNotification(@RequestBody NotificationDTO notificationRequest) {
@@ -18,14 +23,17 @@ public class NotificationController {
             SimpleMailMessage mailMessage = new SimpleMailMessage();
             
             // 1. Set Sender
-            mailMessage.setFrom("aniketpandeyji1221@gmail.com");
+            mailMessage.setFrom(fromEmail);
             
             // 2. Set Recipient 
-            // (Make sure the email in the request is valid, or hardcode your own for testing)
             mailMessage.setTo(notificationRequest.getEmail());
             
-            // 3. Set Subject and Body
-            mailMessage.setSubject("PizzaStore Order Confirmation");
+            // 3. FIX: Use subject from DTO instead of hardcoded value
+            String subject = notificationRequest.getSubject();
+            if (subject == null || subject.isEmpty()) {
+                subject = "PizzaStore Order Confirmation";
+            }
+            mailMessage.setSubject(subject);
             mailMessage.setText(notificationRequest.getMessage());
 
             // 4. Send Email

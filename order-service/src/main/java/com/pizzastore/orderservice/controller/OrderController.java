@@ -1,10 +1,11 @@
 package com.pizzastore.orderservice.controller;
 
-import com.pizzastore.orderservice.dto.CheckoutRequestDTO; // Changed from OrderRequestDTO
+import com.pizzastore.orderservice.dto.CheckoutRequestDTO;
 import com.pizzastore.orderservice.entity.Order;
 import com.pizzastore.orderservice.entity.OrderItem;
 import com.pizzastore.orderservice.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -28,16 +29,44 @@ public class OrderController {
     @Autowired
     private RestTemplate restTemplate;
 
+    // FIX: Use configurable URLs instead of hardcoded localhost
+    @Value("${notification.service.url:http://localhost:8084}")
+    private String notificationServiceUrl;
+
+    @Value("${payment.service.url:http://localhost:8085}")
+    private String paymentServiceUrl;
+
+    @Value("${user.service.url:http://localhost:8081}")
+    private String userServiceUrl;
+
+    // FIX: Helper method to fetch user email from user-service
+    private String getUserEmail(Integer userId) {
+        try {
+            String url = userServiceUrl + "/users/detail/id/" + userId;
+            ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+            if (response.getBody() != null && response.getBody().get("email") != null) {
+                return (String) response.getBody().get("email");
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to fetch user email for userId " + userId + ": " + e.getMessage());
+        }
+        return null;
+    }
+
     // Helper method to send notifications
     private void sendNotification(String email, String subject, String message) {
+        if (email == null || email.isEmpty()) {
+            System.err.println("Skipping notification - no email address available");
+            return;
+        }
         try {
-            String notificationUrl = "http://localhost:8084/notification/send";
+            String url = notificationServiceUrl + "/notification/send";
             Map<String, String> emailRequest = new HashMap<>();
             emailRequest.put("email", email); 
             emailRequest.put("subject", subject);
             emailRequest.put("message", message);
-            restTemplate.postForObject(notificationUrl, emailRequest, String.class);
-            System.out.println("Notification Request Sent: " + subject);
+            restTemplate.postForObject(url, emailRequest, String.class);
+            System.out.println("Notification Request Sent: " + subject + " to " + email);
         } catch (Exception e) {
             System.err.println("Failed to trigger notification for: " + subject + ". Error: " + e.getMessage());
         }
@@ -93,18 +122,18 @@ public class OrderController {
             return ResponseEntity.badRequest().body("Order already cancelled.");
         }
 
-        // Prepare Payload for Payment Service (Port 8085)
+        // Prepare Payload for Payment Service
         Map<String, Object> paymentRequest = new HashMap<>();
         paymentRequest.put("orderId", orderId);
         paymentRequest.put("amount", order.getTotalAmount());
         paymentRequest.put("paymentMode", paymentDetails.get("paymentMode"));
         paymentRequest.put("userId", order.getUserId());
         
-        String paymentServiceUrl = "http://localhost:8085/payments/process";
+        String paymentUrl = paymentServiceUrl + "/payments/process";
         
         try {
             // Call Payment Microservice
-            ResponseEntity<Map> response = restTemplate.postForEntity(paymentServiceUrl, paymentRequest, Map.class);
+            ResponseEntity<Map> response = restTemplate.postForEntity(paymentUrl, paymentRequest, Map.class);
             Map<String, String> body = response.getBody();
 
             if (response.getStatusCode().is2xxSuccessful() && "SUCCESS".equals(body.get("status"))) {
@@ -113,10 +142,12 @@ public class OrderController {
                 order.setPaymentStatus("PAID"); 
                 orderRepository.save(order);
                 
-                // Send Confirmation Email
-                sendNotification("aniketpandeyji1221@gmail.com", 
+                // FIX: Send Confirmation Email to actual user
+                String userEmail = getUserEmail(order.getUserId());
+                sendNotification(userEmail, 
                         "Order Confirmed & Paid", 
-                        "Order #" + orderId + " placed successfully via " + paymentDetails.get("paymentMode"));
+                        "Order #" + orderId + " placed successfully via " + paymentDetails.get("paymentMode") + 
+                        ". Total: $" + order.getTotalAmount());
 
                 return ResponseEntity.ok("Order placed and payment confirmed.");
             } else {
@@ -163,9 +194,10 @@ public class OrderController {
 
             orderRepository.save(order);
             
-            // 3. Send Notification
+            // 3. FIX: Send Notification to actual user
+            String userEmail = getUserEmail(order.getUserId());
             String refundMessage = "Your Order ID " + orderId + " has been CANCELLED. A refund of $" + order.getTotalAmount() + " is being processed.";
-            sendNotification("aniketpandeyji1221@gmail.com", "Order Cancelled & Refunded", refundMessage);
+            sendNotification(userEmail, "Order Cancelled & Refunded", refundMessage);
             
             return ResponseEntity.ok("Order Cancelled and Revenue Subtracted");
         }
@@ -185,8 +217,10 @@ public class OrderController {
                 order.setOrderStatus("ACCEPTED"); 
                 orderRepository.save(order);
                 
+                // FIX: Send notification to actual user
+                String userEmail = getUserEmail(order.getUserId());
                 String acceptMessage = "Your Order ID " + orderId + " has been ACCEPTED and is now being prepared!";
-                sendNotification("aniketpandeyji1221@gmail.com", "Order Status Update", acceptMessage);
+                sendNotification(userEmail, "Order Status Update", acceptMessage);
                 
                 return ResponseEntity.ok("Order Accepted and moved to preparation.");
             }

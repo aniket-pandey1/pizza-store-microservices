@@ -10,13 +10,13 @@
     <header>
         <h1>🍕 Pizza Store</h1>
         <nav id="main-nav">
-            <!-- Navigation links will be added here -->
+            <button id="logout-btn" style="display: none;" onclick="handleLogout()">Logout</button>
         </nav>
     </header>
 
     <main id="content-container">
         
-        <!-- Dedicated Admin Login View (Hidden by default, shown by app.js toggle) -->
+        <!-- Dedicated Admin Login View (Hidden by default) -->
         <section id="admin-login-view" style="display: none;">
             <h2>🔐 Administrator Login</h2>
             <p>Use your designated Admin credentials to access the management dashboard.</p>
@@ -57,6 +57,7 @@
         </section>
     </main>
 
+    <script src="config.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
