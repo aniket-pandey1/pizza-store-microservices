@@ -1,0 +1,148 @@
+﻿version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: pizza-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: pizzastore
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - pizza-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  service-registry:
+    build: ./service-registry
+    container_name: service-registry
+    ports:
+      - "8761:8761"
+    environment:
+      - PORT=8761
+    networks:
+      - pizza-network
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    environment:
+      - PORT=8081
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DB=pizzastore
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+      - EUREKA_URL=http://service-registry:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      service-registry:
+        condition: service_started
+    networks:
+      - pizza-network
+
+  admin-service:
+    build: ./admin-service
+    container_name: admin-service
+    ports:
+      - "8082:8082"
+    environment:
+      - PORT=8082
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DB=pizzastore
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+      - EUREKA_URL=http://service-registry:8761/eureka/
+      - USER_SERVICE_URL=http://user-service:8081
+    depends_on:
+      mysql:
+        condition: service_healthy
+      service-registry:
+        condition: service_started
+    networks:
+      - pizza-network
+
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    ports:
+      - "8083:8083"
+    environment:
+      - PORT=8083
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DB=pizzastore
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+      - EUREKA_URL=http://service-registry:8761/eureka/
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8084
+      - PAYMENT_SERVICE_URL=http://payment-service:8085
+      - USER_SERVICE_URL=http://user-service:8081
+    depends_on:
+      mysql:
+        condition: service_healthy
+      service-registry:
+        condition: service_started
+    networks:
+      - pizza-network
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - "8084:8084"
+    environment:
+      - PORT=8084
+      - EUREKA_URL=http://service-registry:8761/eureka/
+      - MAIL_USERNAME=aniketpandeyji1221@gmail.com
+      - MAIL_PASSWORD=tdxevysmmsrlyfgm
+    depends_on:
+      service-registry:
+        condition: service_started
+    networks:
+      - pizza-network
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    ports:
+      - "8085:8085"
+    environment:
+      - PORT=8085
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_DB=pizzastore
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+      - EUREKA_URL=http://service-registry:8761/eureka/
+    depends_on:
+      mysql:
+        condition: service_healthy
+      service-registry:
+        condition: service_started
+    networks:
+      - pizza-network
+
+  pizza-frontend:
+    build: ./pizza-frontend
+    container_name: pizza-frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - pizza-network
+
+networks:
+  pizza-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
