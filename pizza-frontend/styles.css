@@ -1,37 +1,471 @@
+/* ==========================================================================
+   Premium Pizza Store - CSS Design System
+   ========================================================================== */
+:root {
+    /* Brand Colors */
+    --primary: #ff4757;
+    --primary-hover: #ff6b81;
+    --secondary: #ffa502;
+    --accent: #2ed573;
+    
+    /* Backgrounds */
+    --bg-light: #f1f2f6;
+    --bg-dark: #2f3542;
+    --bg-darker: #1e272e;
+    
+    /* Typography */
+    --text-main: #2f3542;
+    --text-muted: #747d8c;
+    --text-light: #ffffff;
+    
+    /* UI Elements */
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --shadow-sm: 0 4px 6px rgba(0,0,0,0.05);
+    --shadow-lg: 0 15px 35px rgba(0,0,0,0.1);
+    --shadow-hover: 0 20px 40px rgba(255, 71, 87, 0.2);
+    
+    /* Admin Dark Theme Variables */
+    --admin-glass: rgba(47, 53, 66, 0.85);
+    --admin-border: rgba(255, 255, 255, 0.1);
+    --admin-text: #dfe4ea;
+}
+
+/* Base Styles */
 body {
-    font-family: sans-serif;
+    font-family: 'Outfit', sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
+    background-color: var(--bg-light);
+    color: var(--text-main);
+    overflow-x: hidden;
+    transition: background-color 0.5s ease;
 }
-header {
-    background-color: #d8232a; /* Pizza Red */
+
+/* Background Abstract Shapes */
+.bg-shape {
+    position: fixed;
+    border-radius: 50%;
+    z-index: -1;
+    filter: blur(80px);
+    opacity: 0.6;
+    animation: float 15s infinite ease-in-out alternate;
+}
+
+.bg-shape-1 {
+    width: 400px;
+    height: 400px;
+    background: var(--primary);
+    top: -100px;
+    left: -100px;
+}
+
+.bg-shape-2 {
+    width: 500px;
+    height: 500px;
+    background: var(--secondary);
+    bottom: -150px;
+    right: -100px;
+    animation-delay: -5s;
+}
+
+@keyframes float {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(50px, 50px) scale(1.1); }
+}
+
+/* Header */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 40px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--glass-border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(45deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.logo-icon {
+    font-size: 2rem;
+}
+
+/* Glass Panels */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+}
+
+/* Buttons */
+.btn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, var(--primary), #ff7e5f);
     color: white;
-    padding: 20px;
+    box-shadow: 0 5px 15px rgba(255, 71, 87, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--primary);
+    color: var(--primary);
+}
+
+.btn-outline:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-danger {
+    background: #ff4757;
+    color: white;
+}
+.btn-sm { padding: 6px 12px; font-size: 0.85rem; }
+.btn-block { width: 100%; }
+
+/* Forms */
+.form-control {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ced6e0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    font-family: inherit;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Authentication Views */
+.auth-section {
+    max-width: 450px;
+    margin: 60px auto;
+}
+
+.auth-header {
     text-align: center;
+    margin-bottom: 30px;
 }
-main {
-    padding: 20px;
-    max-width: 900px;
-    margin: 20px auto;
+
+.auth-header h2 { font-weight: 800; font-size: 2rem; margin: 0 0 10px 0; }
+.auth-header p { color: var(--text-muted); margin: 0; }
+
+.auth-form {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--glass-border);
+}
+
+.input-group { margin-bottom: 20px; }
+.input-group.row { display: flex; gap: 15px; }
+
+.auth-links {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+}
+
+.auth-links a { color: var(--primary); text-decoration: none; font-weight: 600; }
+.admin-link { color: var(--text-muted) !important; }
+
+/* Customer Dashboard Layout */
+.customer-dashboard {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 30px;
+    padding: 30px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.single-col { grid-template-columns: 1fr; max-width: 900px; }
+
+/* Menu Section */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.section-header h2 { font-size: 2rem; font-weight: 800; margin: 0; }
+.controls { display: flex; gap: 15px; }
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.menu-card {
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    border: 1px solid transparent;
 }
-input, button {
-    padding: 10px;
-    margin: 5px 0;
-    width: 90%;
-    display: block;
+
+.menu-card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow-lg);
+}
+
+.veg-border { border-top: 4px solid var(--accent); }
+.nonveg-border { border-top: 4px solid var(--primary); }
+
+.card-content { padding: 25px; }
+.card-content h4 { font-size: 1.25rem; font-weight: 800; margin: 10px 0; }
+.card-content .desc { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; line-height: 1.5; }
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.price {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--secondary);
+}
+
+/* Badges */
+.badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+.badge-veg { background: rgba(46, 213, 115, 0.1); color: var(--accent); }
+.badge-danger { background: rgba(255, 71, 87, 0.1); color: var(--primary); }
+.badge-primary { background: rgba(255, 165, 2, 0.1); color: var(--secondary); }
+.badge-secondary { background: #eee; color: #666; }
+
+/* Cart Sidebar */
+.cart-sidebar {
+    position: sticky;
+    top: 100px;
+    height: calc(100vh - 130px);
+    display: flex;
+    flex-direction: column;
+    padding: 25px;
     box-sizing: border-box;
 }
-button {
-    background-color: #ff9800;
-    color: white;
+
+.cart-sidebar h3 { margin-top: 0; display: flex; align-items: center; gap: 10px; }
+.cart-sidebar h3 .badge { background: var(--primary); color: white; }
+
+.cart-items-container {
+    flex: 1;
+    overflow-y: auto;
+    margin: 20px 0;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.btn-remove {
+    background: rgba(255, 71, 87, 0.1);
+    color: var(--primary);
     border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
 }
-button:hover {
-    background-color: #e68900;
+
+.btn-remove:hover { background: var(--primary); color: white; }
+
+.cart-summary {
+    border-top: 2px dashed rgba(0,0,0,0.1);
+    padding-top: 20px;
 }
-/* Style for menu items and cart will go here later */
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.25rem;
+    margin-bottom: 20px;
+}
+
+/* Admin Mode OVERRIDES */
+body.admin-mode {
+    background-color: var(--bg-dark);
+    color: var(--admin-text);
+}
+
+body.admin-mode .bg-shape-1 { background: #3742fa; }
+body.admin-mode .bg-shape-2 { background: #5352ed; }
+
+body.admin-mode .main-header {
+    background: var(--admin-glass);
+    border-color: var(--admin-border);
+}
+
+body.admin-mode .logo h1 { background: linear-gradient(45deg, #70a1ff, #5352ed); -webkit-background-clip: text; }
+
+body.admin-mode .glass-panel {
+    background: var(--admin-glass);
+    border-color: var(--admin-border);
+    color: var(--admin-text);
+}
+
+body.admin-mode .form-control {
+    background: rgba(0,0,0,0.2);
+    border-color: rgba(255,255,255,0.1);
+    color: white;
+}
+
+body.admin-mode .btn-primary { background: linear-gradient(45deg, #3742fa, #5352ed); box-shadow: 0 5px 15px rgba(83, 82, 237, 0.3); }
+
+/* Admin Dashboard Layout */
+.admin-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 30px;
+    padding: 30px;
+    max-width: 1600px;
+    margin: 0 auto;
+    min-height: calc(100vh - 80px);
+}
+
+.admin-sidebar { padding: 30px 20px; }
+
+.admin-profile {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.admin-profile .avatar { font-size: 3rem; margin-bottom: 10px; }
+.admin-profile h3 { margin: 0 0 5px 0; }
+
+.admin-nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.btn-nav {
+    padding: 15px 20px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: left;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-nav:hover { background: rgba(255,255,255,0.05); color: white; }
+.btn-nav.active { background: rgba(83, 82, 237, 0.2); color: #70a1ff; }
+
+.admin-main-content { padding: 10px; }
+
+.admin-header { margin-bottom: 30px; }
+.admin-header h2 { font-size: 2rem; margin: 0; }
+
+/* Admin Grid/Cards */
+.dashboard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.stat-card { padding: 30px; text-align: center; }
+.stat-card h3 { color: var(--text-muted); font-size: 1rem; text-transform: uppercase; margin-top:0; }
+.stat-value { font-size: 3rem; font-weight: 800; margin: 15px 0; }
+.text-success { color: #2ed573; }
+
+.admin-grid { display: grid; grid-template-columns: 350px 1fr; gap: 30px; }
+.form-panel, .list-panel { padding: 30px; }
+.modern-form { display: flex; flex-direction: column; gap: 15px; }
+.modern-form textarea { resize: vertical; min-height: 100px; }
+
+/* Tables */
+.table-container { padding: 20px; overflow-x: auto; }
+.admin-table { width: 100%; border-collapse: collapse; text-align: left; }
+.admin-table th { padding: 15px; color: var(--text-muted); border-bottom: 1px solid var(--admin-border); }
+.admin-table td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+/* Modals */
+.modal-overlay {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);
+    display: flex; justify-content: center; align-items: center; z-index: 1000;
+}
+.modal-content { width: 400px; padding: 40px; }
+.modal-actions { display: flex; gap: 15px; margin-top: 20px; }
+
+/* Payment View */
+.payment-view {
+    max-width: 600px;
+    margin: 60px auto;
+    padding: 50px;
+    text-align: center;
+}
+.order-summary-box { background: rgba(255,255,255,0.5); padding: 20px; border-radius: 15px; margin: 20px 0; }
+.grand-total { font-size: 2.5rem; color: var(--primary); margin: 10px 0; }
+.payment-methods { display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 30px; }
+.btn-payment { padding: 20px; font-size: 1.1rem; }
+
+/* Loaders */
+.loader { text-align: center; padding: 20px; color: var(--text-muted); font-style: italic; }
+.error-msg { background: rgba(255, 71, 87, 0.1); color: var(--primary); padding: 15px; border-radius: 10px; display: none; }

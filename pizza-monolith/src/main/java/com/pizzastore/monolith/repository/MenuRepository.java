@@ -12,6 +12,6 @@ public interface MenuRepository extends JpaRepository<Menu, Integer> {
     
     // We are querying the ORDERS table from the MenuRepository for convenience.
     // This calculates the sum of all 'total_amount' where payment_status is 'PAID'.
-    @Query(value = "SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE payment_status = 'PAID'", nativeQuery = true)
+    @Query(value = "SELECT COALESCE(SUM(total_amount), 0) FROM pizza_orders WHERE payment_status = 'PAID'", nativeQuery = true)
     BigDecimal calculateTotalRevenue();
 }

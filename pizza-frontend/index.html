@@ -3,55 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pizza Store - Capstone</title>
+    <title>Pizza Store Premium</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
-        <h1>🍕 Pizza Store</h1>
+    <div class="bg-shape bg-shape-1"></div>
+    <div class="bg-shape bg-shape-2"></div>
+    
+    <header class="main-header">
+        <div class="logo">
+            <span class="logo-icon">🍕</span>
+            <h1>Pizza Store</h1>
+        </div>
         <nav id="main-nav">
-            <button id="logout-btn" style="display: none;" onclick="handleLogout()">Logout</button>
+            <button id="logout-btn" style="display: none;" class="btn btn-outline" onclick="handleLogout()">Logout</button>
         </nav>
     </header>
 
-    <main id="content-container">
+    <main id="content-container" class="glass-panel">
         
         <!-- Dedicated Admin Login View (Hidden by default) -->
-        <section id="admin-login-view" style="display: none;">
-            <h2>🔐 Administrator Login</h2>
-            <p>Use your designated Admin credentials to access the management dashboard.</p>
+        <section id="admin-login-view" style="display: none;" class="auth-section admin-auth">
+            <div class="auth-header">
+                <h2>🔐 Admin Portal</h2>
+                <p>Authorized personnel only.</p>
+            </div>
             
-            <form id="admin-login-form">
-                <input type="text" id="admin-login-username" placeholder="Admin Username" required><br>
-                <input type="password" id="admin-login-password" placeholder="Admin Password" required><br>
-                <button type="submit">Admin Login</button>
-                <p>Back to <a href="#" id="show-user-login">User Login</a></p>
+            <form id="admin-login-form" class="auth-form">
+                <div class="input-group">
+                    <input type="text" id="admin-login-username" placeholder="Admin Username" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" id="admin-login-password" placeholder="Admin Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Access Dashboard</button>
+                <div class="auth-links">
+                    <a href="#" id="show-user-login">← Back to Customer Login</a>
+                </div>
             </form>
         </section>
         
         <!-- Standard User/Customer Login/Register View -->
-        <section id="auth-view">
-            <h2>User Login</h2>
-            <form id="login-form">
-                <input type="text" id="login-username" placeholder="Username" required><br>
-                <input type="password" id="login-password" placeholder="Password" required><br>
-                <button type="submit">Login</button>
-                <p>
-                    Don't have an account? <a href="#" id="show-register">Register here</a>
-                    | <a href="#" id="show-admin-login">Admin Login</a>
-                </p>
-            </form>
+        <section id="auth-view" class="auth-section">
+            <div id="login-container">
+                <div class="auth-header">
+                    <h2>Welcome Back</h2>
+                    <p>Delicious pizza awaits.</p>
+                </div>
+                <form id="login-form" class="auth-form">
+                    <div class="input-group">
+                        <input type="text" id="login-username" placeholder="Username" required>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="login-password" placeholder="Password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                    <div class="auth-links">
+                        <span>New here? <a href="#" id="show-register">Create an account</a></span>
+                        <a href="#" id="show-admin-login" class="admin-link">Admin Access</a>
+                    </div>
+                </form>
+            </div>
 
             <div id="register-container" style="display: none;">
-                <h2>New User Registration</h2>
-                <form id="register-form">
-                    <input type="text" id="reg-username" placeholder="Username" required><br>
-                    <input type="email" id="reg-email" placeholder="Email" required><br>
-                    <input type="password" id="reg-password" placeholder="Password" required><br>
-                    <input type="text" id="reg-fullname" placeholder="Full Name"><br>
-                    <input type="text" id="reg-phone" placeholder="Phone"><br>
-                    <button type="submit">Register</button>
-                    <p><a href="#" id="show-login">Back to Login</a></p>
+                <div class="auth-header">
+                    <h2>Join the Family</h2>
+                    <p>Register for exclusive deals.</p>
+                </div>
+                <form id="register-form" class="auth-form">
+                    <div class="input-group">
+                        <input type="text" id="reg-username" placeholder="Username" required>
+                    </div>
+                    <div class="input-group">
+                        <input type="email" id="reg-email" placeholder="Email Address" required>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="reg-password" placeholder="Password" required>
+                    </div>
+                    <div class="input-group row">
+                        <input type="text" id="reg-fullname" placeholder="Full Name">
+                        <input type="text" id="reg-phone" placeholder="Phone Number">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Register</button>
+                    <div class="auth-links">
+                        <span>Already have an account? <a href="#" id="show-login">Sign In</a></span>
+                    </div>
                 </form>
             </div>
         </section>

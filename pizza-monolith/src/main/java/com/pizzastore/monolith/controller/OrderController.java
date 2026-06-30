@@ -112,7 +112,7 @@ public class OrderController {
         return ResponseEntity.ok(response);
     }
 
-    // 7. CONFIRM PAYMENT (Step 2: Call Payment Service)
+    // 7. CONFIRM PAYMENT (Step 2: Mocked Payment Processing)
     @PostMapping("/confirm-payment/{orderId}")
     public ResponseEntity<?> confirmPayment(@PathVariable Integer orderId, @RequestBody Map<String, String> paymentDetails) {
         Order order = orderRepository.findById(orderId)
@@ -122,49 +122,24 @@ public class OrderController {
             return ResponseEntity.badRequest().body("Order already cancelled.");
         }
 
-        // Prepare Payload for Payment Service
-        Map<String, Object> paymentRequest = new HashMap<>();
-        paymentRequest.put("orderId", orderId);
-        paymentRequest.put("amount", order.getTotalAmount());
-        paymentRequest.put("paymentMode", paymentDetails.get("paymentMode"));
-        paymentRequest.put("userId", order.getUserId());
-        
-        String paymentUrl = paymentServiceUrl + "/payments/process";
-        
         try {
-            // Call Payment Microservice
-            ResponseEntity<Map> response = restTemplate.postForEntity(paymentUrl, paymentRequest, Map.class);
-            Map<String, String> body = response.getBody();
+            // Mocking a successful payment natively since there is no external gateway
+            order.setOrderStatus("PLACED"); 
+            order.setPaymentStatus("PAID"); 
+            orderRepository.save(order);
+            
+            // Send Confirmation Email
+            String userEmail = getUserEmail(order.getUserId());
+            sendNotification(userEmail, 
+                    "Order Confirmed & Paid", 
+                    "Order #" + orderId + " placed successfully via " + paymentDetails.get("paymentMode") + 
+                    ". Total: $" + order.getTotalAmount());
 
-            if (response.getStatusCode().is2xxSuccessful() && "SUCCESS".equals(body.get("status"))) {
-                // Payment SUCCESS: Update Order
-                order.setOrderStatus("PLACED"); 
-                order.setPaymentStatus("PAID"); 
-                orderRepository.save(order);
-                
-                // FIX: Send Confirmation Email to actual user
-                String userEmail = getUserEmail(order.getUserId());
-                sendNotification(userEmail, 
-                        "Order Confirmed & Paid", 
-                        "Order #" + orderId + " placed successfully via " + paymentDetails.get("paymentMode") + 
-                        ". Total: $" + order.getTotalAmount());
-
-                return ResponseEntity.ok("Order placed and payment confirmed.");
-            } else {
-                // Payment FAILED
-                order.setPaymentStatus("FAILED");
-                orderRepository.save(order);
-                return ResponseEntity.status(400).body("Payment failed: " + body.get("message"));
-            }
-
+            return ResponseEntity.ok("Order placed and payment confirmed natively.");
         } catch (Exception e) {
              order.setPaymentStatus("FAILED");
              orderRepository.save(order);
-             // Handle 400 Bad Request from Payment Service (Simulated Failure)
-             if (e.getMessage() != null && e.getMessage().contains("400")) {
-                 return ResponseEntity.status(400).body("Payment failed. Please try COD or try again.");
-             }
-             return ResponseEntity.status(503).body("Payment gateway unavailable.");
+             return ResponseEntity.status(503).body("Payment processing failed internally.");
         }
     }
 
