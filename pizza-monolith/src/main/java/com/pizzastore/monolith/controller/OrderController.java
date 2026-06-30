@@ -39,34 +39,31 @@ public class OrderController {
     @Value("${user.service.url:http://localhost:8081}")
     private String userServiceUrl;
 
-    // FIX: Helper method to fetch user email from user-service
+    @Autowired
+    private com.pizzastore.monolith.repository.UserRepository userRepository;
+    
+    @Autowired
+    private com.pizzastore.monolith.controller.NotificationController notificationController;
+
     private String getUserEmail(Integer userId) {
-        try {
-            String url = userServiceUrl + "/users/detail/id/" + userId;
-            ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
-            if (response.getBody() != null && response.getBody().get("email") != null) {
-                return (String) response.getBody().get("email");
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to fetch user email for userId " + userId + ": " + e.getMessage());
-        }
-        return null;
+        return userRepository.findById(userId)
+                .map(com.pizzastore.monolith.entity.User::getEmail)
+                .orElse(null);
     }
 
-    // Helper method to send notifications
+    // Helper method to send notifications natively
     private void sendNotification(String email, String subject, String message) {
         if (email == null || email.isEmpty()) {
             System.err.println("Skipping notification - no email address available");
             return;
         }
         try {
-            String url = notificationServiceUrl + "/notification/send";
-            Map<String, String> emailRequest = new HashMap<>();
-            emailRequest.put("email", email); 
-            emailRequest.put("subject", subject);
-            emailRequest.put("message", message);
-            restTemplate.postForObject(url, emailRequest, String.class);
-            System.out.println("Notification Request Sent: " + subject + " to " + email);
+            com.pizzastore.monolith.controller.NotificationDTO dto = new com.pizzastore.monolith.controller.NotificationDTO();
+            dto.setEmail(email);
+            dto.setSubject(subject);
+            dto.setMessage(message);
+            notificationController.sendNotification(dto);
+            System.out.println("Notification Request Sent natively: " + subject + " to " + email);
         } catch (Exception e) {
             System.err.println("Failed to trigger notification for: " + subject + ". Error: " + e.getMessage());
         }
