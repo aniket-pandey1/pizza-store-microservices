@@ -82,28 +82,45 @@ public class AdminController {
         return ResponseEntity.ok(revenue);
     }
 
+    @Autowired
+    private com.pizzastore.monolith.repository.UserRepository userRepository;
+
     // ----------------------------------------------------
     // --- ADMIN USER MANAGEMENT CLIENT ENDPOINTS (CRUD) ---
     // ----------------------------------------------------
 
     // 6. ADMIN: VIEW ALL USERS
     @GetMapping("/users/all")
-    public ResponseEntity<List<Object>> getAllUsers() {
-        ResponseEntity<Object[]> response = restTemplate.getForEntity(getUserServiceBase() + "/all", Object[].class);
-        return ResponseEntity.ok(Arrays.asList(response.getBody()));
+    public ResponseEntity<List<com.pizzastore.monolith.entity.User>> getAllUsers() {
+        return ResponseEntity.ok(userRepository.findAll());
     }
 
     // 7. ADMIN: DELETE USER
     @DeleteMapping("/users/delete/{userId}")
     public ResponseEntity<String> deleteUser(@PathVariable Integer userId) {
-        restTemplate.delete(getUserServiceBase() + "/delete/" + userId);
+        if (!userRepository.existsById(userId)) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+        userRepository.deleteById(userId);
         return ResponseEntity.ok("User deleted successfully");
     }
 
     // 8. ADMIN: UPDATE USER/ROLE
     @PutMapping("/users/update/{userId}")
-    public ResponseEntity<String> updateUser(@PathVariable Integer userId, @RequestBody Object userDetails) {
-        restTemplate.put(getUserServiceBase() + "/update/" + userId, userDetails);
+    public ResponseEntity<String> updateUser(@PathVariable Integer userId, @RequestBody com.pizzastore.monolith.entity.User userDetails) {
+        Optional<com.pizzastore.monolith.entity.User> existingUserOpt = userRepository.findById(userId);
+        if (!existingUserOpt.isPresent()) {
+            return ResponseEntity.status(404).body("User not found");
+        }
+        com.pizzastore.monolith.entity.User existingUser = existingUserOpt.get();
+
+        if (userDetails.getFullName() != null) existingUser.setFullName(userDetails.getFullName());
+        if (userDetails.getPhone() != null) existingUser.setPhone(userDetails.getPhone());
+        if (userDetails.getRole() != null) existingUser.setRole(userDetails.getRole());
+        if (userDetails.getUsername() != null) existingUser.setUsername(userDetails.getUsername());
+        if (userDetails.getEmail() != null) existingUser.setEmail(userDetails.getEmail());
+
+        userRepository.save(existingUser);
         return ResponseEntity.ok("User updated successfully");
     }
 }
